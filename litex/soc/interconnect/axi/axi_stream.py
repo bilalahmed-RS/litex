@@ -17,12 +17,13 @@ from litex.soc.interconnect.axi.axi_common import *
 # AXI-Stream Definition ----------------------------------------------------------------------------
 
 class AXIStreamInterface(stream.Endpoint):
-    def __init__(self, data_width=0, keep_width=None, id_width=0, dest_width=0, user_width=0, layout=None, name=None):
-        self.data_width = data_width
-        self.keep_width = data_width//8 if keep_width is None else keep_width
-        self.id_width   = id_width
-        self.dest_width = dest_width
-        self.user_width = user_width
+    def __init__(self, data_width=0, keep_width=None, id_width=0, dest_width=0, user_width=0, clock_domain="sys", layout=None, name=None):
+        self.data_width   = data_width
+        self.keep_width   = data_width//8 if keep_width is None else keep_width
+        self.id_width     = id_width
+        self.dest_width   = dest_width
+        self.user_width   = user_width
+        self.clock_domain = clock_domain
 
         # Define Payload Layout.
         if layout is not None:
@@ -48,14 +49,10 @@ class AXIStreamInterface(stream.Endpoint):
             Subsignal("tready", Pins(1)),
         ]
 
-        # Payload Signals.
-        subsignals += [Subsignal("tdata", Pins(len(self.data)))]
-        subsignals += [Subsignal("tkeep", Pins(len(self.keep)))]
-
-        # Param Signals.
-        subsignals += [Subsignal("tid",   Pins(len(self.id)))]
-        subsignals += [Subsignal("tdest", Pins(len(self.dest)))]
-        subsignals += [Subsignal("tuser", Pins(len(self.user)))]
+        # Payload/Params Signals.
+        channel_layout = (self.description.payload_layout + self.description.param_layout)
+        for name, width in channel_layout:
+            subsignals.append(Subsignal(f"t{name}", Pins(width)))
         ios = [(bus_name , 0) + tuple(subsignals)]
         return ios
 
